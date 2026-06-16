@@ -1,0 +1,32 @@
+# ═══════════════════════════════════════════════════════════
+#  systemd unit — автозапуск при старте Linux-системы
+#
+#  Установка:
+#    sudo cp face-access.service /etc/systemd/system/
+#    sudo systemctl daemon-reload
+#    sudo systemctl enable face-access
+#    sudo systemctl start face-access
+#
+#  Управление:
+#    sudo systemctl status face-access   — статус
+#    sudo systemctl stop face-access     — остановить
+#    sudo systemctl restart face-access  — перезапустить
+#    journalctl -u face-access -f        — лог в реальном времени
+# ═══════════════════════════════════════════════════════════
+[Unit]
+Description=Face Recognition Door Access Control
+After=network.target
+
+[Service]
+Type=simple
+# ↓ Замените на реальный путь к папке проекта
+WorkingDirectory=/opt/face-tg
+# ↓ Замените на реальный путь к python
+ExecStart=/usr/bin/python3 /opt/face-tg/headless.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/opt/face-tg/system.log
+StandardError=append:/opt/face-tg/system.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<style>
+  :root{
+    --bg:#080C12; --panel:#0D1118; --card:#111722; --border:#1A2535;
+    --text:#C8D8E8; --muted:#4A6080; --green:#22C55E; --red:#EF4444;
+    --yellow:#FBBF24; --blue:#3B82F6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;}
+  header{display:flex;align-items:center;justify-content:space-between;
+         padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--border);}
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.5px;}
+  .badges{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--muted);}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px;}
+  @media(max-width:900px){.layout{grid-template-columns:1fr;}}
+  .video-wrap{background:#000;border:1px solid var(--border);border-radius:10px;
+              overflow:hidden;position:relative;}
+  .video-wrap img{width:100%;display:block;}
+  .controls{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  button{cursor:pointer;border:none;border-radius:8px;padding:11px 16px;
+         font-size:14px;font-weight:600;color:#fff;transition:.15s opacity;}
+  button:hover{opacity:.85;}
+  .btn-green{background:var(--green);} .btn-blue{background:var(--blue);}
+  .btn-red{background:var(--red);} .btn-muted{background:var(--border);color:var(--text);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+        padding:14px;margin-bottom:16px;}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;
+           color:var(--muted);margin:0 0 12px;}
+  input[type=text],input[type=file]{width:100%;background:var(--bg);
+           border:1px solid var(--border);border-radius:7px;padding:9px;
+           color:var(--text);margin-bottom:8px;font-size:13px;}
+  .visitor{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;
+           border:1px solid var(--border);margin-bottom:8px;background:var(--panel);}
+  .visitor img{width:54px;height:54px;object-fit:cover;border-radius:6px;
+               background:#000;cursor:pointer;}
+  .visitor .meta{flex:1;min-width:0;}
+  .visitor .name{font-weight:600;}
+  .visitor .time{font-size:12px;color:var(--muted);}
+  .tag{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600;}
+  .tag-known{background:rgba(34,197,94,.15);color:var(--green);}
+  .tag-unknown{background:rgba(251,191,36,.15);color:var(--yellow);}
+  .face{display:flex;justify-content:space-between;align-items:center;
+        padding:7px 10px;border:1px solid var(--border);border-radius:7px;margin-bottom:6px;}
+  .face .del{color:var(--red);cursor:pointer;font-size:12px;background:none;
+             border:none;padding:4px 8px;}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);padding:12px 20px;
+         border-radius:8px;opacity:0;transition:.3s;pointer-events:none;z-index:50;}
+  #toast.show{opacity:1;}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
+         align-items:center;justify-content:center;z-index:60;}
+  #modal img{max-width:90%;max-height:90%;border-radius:8px;}
+  .list{max-height:60vh;overflow:auto;}
+  .small{font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+  <h1>🚪 {{ title }}</h1>
+  <div class="badges">
+    <span id="b-device"><span class="dot" style="background:var(--muted)"></span>устройство</span>
+    <span id="b-door"><span class="dot" style="background:var(--muted)"></span>дверь</span>
+    <span id="b-recog"><span class="dot" style="background:var(--muted)"></span>распознавание</span>
+    <span id="b-fps" class="small">FPS: --</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Левая колонка: видео -->
+  <div>
+    <div class="video-wrap">
+      <img src="/video_feed" alt="видео с камеры">
+    </div>
+    <div class="controls">
+      <button class="btn-green" onclick="openDoor()">🔓 Открыть дверь</button>
+      <button class="btn-muted" onclick="loadVisitors()">↻ Обновить журнал</button>
+    </div>
+  </div>
+
+  <!-- Правая колонка -->
+  <div>
+    <div class="card">
+      <h2>Добавить лицо</h2>
+      <form id="face-form" onsubmit="return addFace(event)">
+        <input type="text" id="face-name" placeholder="Имя человека" required>
+        <input type="file" id="face-photo" accept="image/*" required>
+        <button class="btn-blue" type="submit" style="width:100%">＋ Добавить в базу</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>База лиц (<span id="face-count">0</span>)</h2>
+      <div id="faces"></div>
+    </div>
+
+    <div class="card">
+      <h2>Журнал посетителей
+        <button class="btn-muted" style="float:right;padding:3px 8px;font-size:11px"
+                onclick="clearVisitors()">очистить</button>
+      </h2>
+      <div class="list" id="visitors"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="modal" onclick="this.style.display='none'"><img id="modal-img" src=""></div>
+
+<script>
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+function setDot(id,label,color){
+  document.getElementById(id).innerHTML=
+    '<span class="dot" style="background:'+color+'"></span>'+label;
+}
+
+async function openDoor(){
+  const r=await fetch('/api/open_door',{method:'POST'});
+  const j=await r.json();
+  toast(j.ok?'✅ Дверь открыта':'❌ Не удалось открыть дверь');
+}
+
+async function loadStatus(){
+  try{
+    const s=await (await fetch('/api/status')).json();
+    setDot('b-device', s.device_online?'устройство онлайн':'устройство офлайн',
+           s.device_online?'var(--green)':'var(--red)');
+    setDot('b-door', s.door_open?'дверь открыта':'дверь закрыта',
+           s.door_open?'var(--green)':'var(--muted)');
+    let rlabel = s.recognition_active ? 'распознавание ON' : 'ожидание';
+    if(s.motion_gate && s.recognition_active && s.seconds_left!=null)
+       rlabel += ' ('+s.seconds_left+'с)';
+    setDot('b-recog', rlabel, s.recognition_active?'var(--green)':'var(--muted)');
+    document.getElementById('b-fps').textContent='FPS: '+s.fps;
+  }catch(e){}
+}
+
+async function loadVisitors(){
+  const list=await (await fetch('/api/visitors?limit=100')).json();
+  const box=document.getElementById('visitors');
+  if(!list.length){box.innerHTML='<div class="small">Пока никто не приходил</div>';return;}
+  box.innerHTML=list.map(v=>{
+    const t=new Date(v.timestamp).toLocaleString('ru-RU');
+    const photo=v.photo?'/visitors/photos/'+v.photo:'';
+    const tag=v.known?'<span class="tag tag-known">'+v.name+'</span>'
+                     :'<span class="tag tag-unknown">Неизвестный</span>';
+    const conf=v.known?(' · '+Math.round(v.confidence*100)+'%'):'';
+    return '<div class="visitor">'+
+      (photo?'<img src="'+photo+'" onclick="showImg(\''+photo+'\')">':'')+
+      '<div class="meta"><div class="name">'+tag+conf+'</div>'+
+      '<div class="time">'+t+'</div></div></div>';
+  }).join('');
+}
+
+async function clearVisitors(){
+  if(!confirm('Очистить весь журнал посетителей и удалить фото?'))return;
+  await fetch('/api/visitors/clear',{method:'POST'});
+  loadVisitors();
+}
+
+async function loadFaces(){
+  const faces=await (await fetch('/api/faces')).json();
+  document.getElementById('face-count').textContent=faces.length;
+  const box=document.getElementById('faces');
+  box.innerHTML=faces.length?faces.map(f=>
+    '<div class="face"><span>'+f.name+'</span>'+
+    '<button class="del" onclick="delFace(\''+f.file+'\')">✕ удалить</button></div>'
+  ).join(''):'<div class="small">База пуста</div>';
+}
+
+async function addFace(e){
+  e.preventDefault();
+  const fd=new FormData();
+  fd.append('name',document.getElementById('face-name').value);
+  fd.append('photo',document.getElementById('face-photo').files[0]);
+  const r=await fetch('/api/faces',{method:'POST',body:fd});
+  const j=await r.json();
+  if(j.ok){toast('✅ Лицо добавлено'); document.getElementById('face-form').reset(); loadFaces();}
+  else toast('❌ '+(j.error||'Ошибка'));
+  return false;
+}
+
+async function delFace(file){
+  if(!confirm('Удалить '+file+' из базы?'))return;
+  const r=await fetch('/api/faces/'+encodeURIComponent(file),{method:'DELETE'});
+  const j=await r.json();
+  if(j.ok){toast('Удалено'); loadFaces();} else toast('❌ '+(j.error||'Ошибка'));
+}
+
+function showImg(src){
+  document.getElementById('modal-img').src=src;
+  document.getElementById('modal').style.display='flex';
+}
+
+loadStatus(); loadVisitors(); loadFaces();
+setInterval(loadStatus,3000);
+setInterval(loadVisitors,8000);
+</script>
+</body>
+</html>

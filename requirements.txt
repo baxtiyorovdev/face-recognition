@@ -1,0 +1,21 @@
+# requirements.txt — pip install -r requirements.txt
+
+# ── Видео ────────────────────────────────────────────────────
+opencv-python>=4.9.0
+# На сервере без дисплея: opencv-python-headless
+
+# ── Распознавание лиц (InsightFace — быстрее dlib в 20-30 раз) ──
+# Первый запуск скачает модель buffalo_sc (~300 МБ)
+insightface>=0.7.3
+onnxruntime>=1.17.0
+# Для GPU (CUDA 11+): вместо onnxruntime установите onnxruntime-gpu
+
+# ── GUI ──────────────────────────────────────────────────────
+Pillow>=10.3.0
+
+# ── Утилиты ──────────────────────────────────────────────────
+numpy>=1.26.0
+scipy>=1.13.0
+
+# ── HTTP-клиент (Dahua API + Telegram) ───────────────────────
+requests>=2.31.0
